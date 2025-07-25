@@ -1,7 +1,0 @@
-# nixpacks.toml
-
-[phases.install]
-cmds = ["npm install"]
-
-[phases.start]
-startCmd = "npm start"
