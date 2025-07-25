@@ -35,7 +35,13 @@ const AnimatedSection = ({ children, className = "" }) => {
 };
 
 // --- The Main View Component ---
-const PostView = ({ post, comments, onCommentPosted, onLikeToggle }) => {
+const PostView = ({
+  post,
+  comments,
+  setComments,
+  onCommentPosted,
+  onLikeToggle,
+}) => {
   const [openLightbox, setOpenLightbox] = useState(false);
 
   const contentRef = useRef(null);
@@ -145,7 +151,11 @@ const PostView = ({ post, comments, onCommentPosted, onLikeToggle }) => {
               postId={post._id}
               onCommentPosted={() => onCommentPosted(post._id)}
             />
-            <CommentList comments={comments} />
+            <CommentList
+              postId={post._id}
+              comments={comments}
+              setComments={setComments}
+            />
           </AnimatedSection>
         </div>
         <RelatedPosts currentPostId={post._id} />
@@ -224,8 +234,9 @@ const PostDetailPage = () => {
     <PostView
       post={post}
       comments={comments}
+      setComments={setComments} // Add this prop
       onCommentPosted={fetchComments}
-      onLikeToggle={handleLikeToggle} // Pass the new, safe handler
+      onLikeToggle={handleLikeToggle}
     />
   ) : null;
 };

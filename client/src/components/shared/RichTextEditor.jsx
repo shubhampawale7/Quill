@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import { motion, useTransform } from "framer-motion";
+import { motion } from "framer-motion";
 import {
   FiBold,
   FiItalic,
@@ -12,29 +12,36 @@ import {
   FiMinus,
   FiChevronsRight,
 } from "react-icons/fi";
-import { FaQuoteLeft, FaStrikethrough } from "react-icons/fa"; // Correct icon imports
+import { FaQuoteLeft, FaStrikethrough } from "react-icons/fa";
 
-// --- Reusable Menu Button Component ---
+// --- Reusable Menu Button Component (with fix) ---
 const MenuButton = ({ editor, action, params = [], icon, title }) => {
-  const isActive =
-    params.length > 0
-      ? editor.isActive(action, ...params)
-      : editor.isActive(action);
+  // THE FIX: We check if editor.isEditable before calling functions that need the view.
+  const isReady = editor.isEditable;
 
+  const isActive =
+    isReady &&
+    (params.length > 0
+      ? editor.isActive(action, ...params)
+      : editor.isActive(action));
+
+  // We disable the button if the editor isn't ready OR if the action can't be performed.
   const canExecute =
-    params.length > 0
+    isReady &&
+    (params.length > 0
       ? editor
           .can()
           .chain()
           .focus()
           [action](...params)
           .run()
-      : editor.can().chain().focus()[action]().run();
+      : editor.can().chain().focus()[action]().run());
 
   return (
     <motion.button
       type="button"
       onClick={() =>
+        isReady &&
         editor
           .chain()
           .focus()
@@ -163,7 +170,11 @@ const RichTextEditor = ({ value, onChange }) => {
           "prose dark:prose-invert prose-sm sm:prose-base focus:outline-none p-4 min-h-[250px] w-full max-w-full",
       },
     },
-    onUpdate: ({ editor }) => onChange(editor.getHTML()),
+    onUpdate: ({ editor }) => {
+      if (onChange) {
+        onChange(editor.getHTML());
+      }
+    },
     onFocus: () => setIsFocused(true),
     onBlur: () => setIsFocused(false),
   });

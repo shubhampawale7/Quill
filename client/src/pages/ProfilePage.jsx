@@ -121,11 +121,49 @@ const ProfilePage = () => {
   }, [userId]);
 
   if (loading) {
-    /* Skeleton Loader remains the same */
-  }
+    return (
+      <div className="container mx-auto px-4 py-8">
+               {" "}
+        <div className="mb-8 h-48 w-full animate-pulse rounded-2xl bg-gray-200 dark:bg-gray-700/50"></div>
+               {" "}
+        <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
+                   {" "}
+          {[...Array(3)].map((_, i) => (
+            <PostCardSkeleton key={i} />
+          ))}
+                 {" "}
+        </div>
+             {" "}
+      </div>
+    );
+  } // --- Error State ---
+
   if (error) {
-    /* Error State remains the same */
+    return (
+      <motion.div
+        className="flex h-[60vh] flex-col items-center justify-center gap-4 text-center"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+      >
+                <FiAlertTriangle className="h-12 w-12 text-red-500" />       {" "}
+        <h2 className="text-2xl font-bold text-red-600">Profile Not Found</h2> 
+              <p className="text-gray-600 dark:text-gray-400">{error}</p>       {" "}
+        <Link to="/">
+                   {" "}
+          <motion.button
+            className="mt-4 rounded-lg bg-sky-500 px-5 py-2 font-semibold text-white"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+                        Go Back Home          {" "}
+          </motion.button>
+                 {" "}
+        </Link>
+             {" "}
+      </motion.div>
+    );
   }
+
   if (!profile) return null;
 
   return (

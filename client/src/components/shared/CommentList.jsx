@@ -1,20 +1,24 @@
-import { useState, useContext } from "react";
+import { useState, useContext, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { formatDistanceToNow } from "date-fns";
-import { FiMessageSquare, FiCornerDownRight } from "react-icons/fi";
+import {
+  FiMessageSquare,
+  FiCornerDownRight,
+  FiChevronsDown,
+} from "react-icons/fi";
 import { AuthContext } from "../../context/AuthContext";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
-import API from "../../api"; // Make sure API client is available
+import API from "../../api";
 
-// --- New: In-line Reply Form ---
-const ReplyForm = ({ onCancel, onSubmit }) => {
+// --- In-line Reply Form ---
+const ReplyForm = ({ onCancel, onSubmit, isLoading }) => {
   const [text, setText] = useState("");
   const { userInfo } = useContext(AuthContext);
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!text.trim()) return;
+    if (!text.trim() || isLoading) return;
     onSubmit(text);
     setText("");
   };
@@ -37,9 +41,10 @@ const ReplyForm = ({ onCancel, onSubmit }) => {
         <div className="mt-2 flex gap-2">
           <button
             type="submit"
-            className="rounded-md bg-sky-500 px-3 py-1 text-xs font-semibold text-white hover:bg-sky-600"
+            disabled={isLoading}
+            className="rounded-md bg-sky-500 px-3 py-1 text-xs font-semibold text-white hover:bg-sky-600 disabled:opacity-70"
           >
-            Submit
+            {isLoading ? "Submitting..." : "Submit"}
           </button>
           <button
             type="button"
@@ -54,43 +59,66 @@ const ReplyForm = ({ onCancel, onSubmit }) => {
   );
 };
 
-// --- New: Recursive Comment Item ---
+// --- Recursive Comment Item ---
 const CommentItem = ({ comment, onCommentPosted, level = 0 }) => {
   const [isReplying, setIsReplying] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(true);
+  const [isSubmittingReply, setIsSubmittingReply] = useState(false);
   const { userInfo } = useContext(AuthContext);
 
+  useEffect(() => {
+    // Automatically collapse deep threads
+    if (level >= 1) setIsExpanded(false);
+  }, [level]);
+
   const handleReplySubmit = async (text) => {
-    // This calls the parent's onCommentPosted function, but with the parentId
+    setIsSubmittingReply(true);
     await onCommentPosted(text, comment._id);
     setIsReplying(false);
+    setIsSubmittingReply(false);
   };
 
   return (
     <motion.div
-      layout
+      layout="position"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -10 }}
-      className="relative"
+      exit={{ opacity: 0, scale: 0.95 }}
+      transition={{ type: "spring", stiffness: 300, damping: 25 }}
+      className={`relative ${level > 0 ? "pl-8" : ""}`}
     >
-      {/* Indentation line for replies */}
       {level > 0 && (
-        <div className="absolute -left-4 top-6 h-[calc(100%-1.5rem)] w-px bg-gray-200 dark:bg-gray-800" />
+        <div className="absolute left-0 top-0 h-full w-8">
+          <svg
+            width="100%"
+            height="100%"
+            className="stroke-current text-gray-200 dark:text-gray-800"
+          >
+            <line x1="16" y1="0" x2="16" y2="20" strokeWidth="2" />
+            <line x1="16" y1="20" x2="32" y2="20" strokeWidth="2" />
+          </svg>
+        </div>
       )}
 
-      <div className="flex items-start gap-4">
+      <div className="relative flex items-start gap-4">
         <img
           src={
             comment.user?.avatarUrl ||
             `https://i.pravatar.cc/150?u=${comment.user?._id}`
           }
-          alt={comment.user?.name || "User"}
+          alt={comment.user?.name}
           className="h-10 w-10 flex-shrink-0 rounded-full"
         />
-        <div className="flex-1 rounded-2xl border border-white/10 bg-white/30 p-4 shadow-lg backdrop-blur-md dark:bg-black/30">
+        <motion.div
+          layout
+          transition={{ type: "spring", stiffness: 300, damping: 25 }}
+          className={`flex-1 rounded-2xl border p-4 shadow-lg ${
+            isReplying ? "border-sky-500/50" : "border-white/10"
+          } bg-white/30 backdrop-blur-md dark:bg-black/30`}
+        >
           <div className="flex items-center gap-3">
             <span className="font-bold text-gray-900 dark:text-white">
-              {comment.user?.name || "Anonymous User"}
+              {comment.user?.name}
             </span>
             <span className="text-xs text-gray-500 dark:text-gray-400">
               {formatDistanceToNow(new Date(comment.createdAt), {
@@ -109,12 +137,13 @@ const CommentItem = ({ comment, onCommentPosted, level = 0 }) => {
               <FiCornerDownRight size={14} /> Reply
             </button>
           )}
-        </div>
+        </motion.div>
       </div>
 
       <AnimatePresence>
         {isReplying && (
           <motion.div
+            layout
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
@@ -123,30 +152,56 @@ const CommentItem = ({ comment, onCommentPosted, level = 0 }) => {
             <ReplyForm
               onCancel={() => setIsReplying(false)}
               onSubmit={handleReplySubmit}
+              isLoading={isSubmittingReply}
             />
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Recursive rendering for nested replies */}
       {comment.replies && comment.replies.length > 0 && (
-        <div className="pt-4 pl-8 border-l border-gray-200 dark:border-gray-800 ml-5 space-y-4">
-          {comment.replies.map((reply) => (
-            <CommentItem
-              key={reply._id}
-              comment={reply}
-              onCommentPosted={onCommentPosted}
-              level={level + 1}
-            />
-          ))}
+        <div className="pt-4 pl-8 space-y-4">
+          {isExpanded ? (
+            <AnimatePresence>
+              {comment.replies.map((reply) => (
+                <CommentItem
+                  key={reply._id}
+                  comment={reply}
+                  onCommentPosted={onCommentPosted}
+                  level={level + 1}
+                />
+              ))}
+            </AnimatePresence>
+          ) : (
+            <motion.button
+              layout
+              onClick={() => setIsExpanded(true)}
+              className="flex items-center gap-2 text-xs font-semibold text-gray-500 hover:text-sky-500 dark:text-gray-400"
+              whileHover={{ x: 2 }}
+            >
+              <FiChevronsDown /> Show {comment.replies.length}{" "}
+              {comment.replies.length > 1 ? "replies" : "reply"}
+            </motion.button>
+          )}
         </div>
       )}
     </motion.div>
   );
 };
 
-const CommentList = ({ comments, onCommentPosted }) => {
-  // --- "No Comments" State ---
+const CommentList = ({ postId, comments, setComments }) => {
+  const handleCommentPosted = async (text, parentId = null) => {
+    try {
+      await API.post(`/api/comments/${postId}`, { text, parent: parentId });
+      const { data: updatedComments } = await API.get(
+        `/api/comments/${postId}`
+      );
+      setComments(updatedComments);
+      toast.success(parentId ? "Reply posted!" : "Comment posted!");
+    } catch (error) {
+      toast.error("Failed to post comment.");
+    }
+  };
+
   if (!comments || comments.length === 0) {
     return (
       <motion.div
@@ -166,26 +221,20 @@ const CommentList = ({ comments, onCommentPosted }) => {
     );
   }
 
-  // Filter for top-level comments only (those without a parent)
   const topLevelComments = comments.filter((comment) => !comment.parent);
 
   return (
-    <motion.div
-      className="mt-8 space-y-6"
-      initial="hidden"
-      animate="visible"
-      variants={{ visible: { transition: { staggerChildren: 0.1 } } }}
-    >
+    <div className="mt-8 space-y-6">
       <AnimatePresence>
         {topLevelComments.map((comment) => (
           <CommentItem
             key={comment._id}
             comment={comment}
-            onCommentPosted={onCommentPosted}
+            onCommentPosted={handleCommentPosted}
           />
         ))}
       </AnimatePresence>
-    </motion.div>
+    </div>
   );
 };
 
