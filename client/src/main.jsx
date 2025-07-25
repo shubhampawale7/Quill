@@ -7,23 +7,30 @@ import "./index.css";
 import { ThemeProvider } from "./context/ThemeContext.jsx";
 import { AuthProvider } from "./context/AuthContext.jsx";
 
-import HomePage from "./pages/HomePage.jsx";
-import PostDetailPage from "./pages/PostDetailPage.jsx";
-import AdminDashboardPage from "./pages/AdminDashboardPage.jsx";
-import RegisterPage from "./pages/RegisterPage.jsx";
-import LoginPage from "./pages/LoginPage.jsx";
-import PostEditorPage from "./pages/PostEditorPage.jsx";
-import SearchPage from "./pages/SearchPage.jsx";
-import CategoryPage from "./pages/CategoryPage.jsx";
-import ProfilePage from "./pages/ProfilePage.jsx";
-import SettingsPage from "./pages/SettingsPage.jsx";
-import BookmarksPage from "./pages/BookmarksPage.jsx";
+// Import components used directly in the router config
+import ErrorPage from "./pages/ErrorPage.jsx";
 import PrivateRoute from "./components/shared/PrivateRoute.jsx";
+
+// --- Lazy-loaded Page Components ---
+const HomePage = React.lazy(() => import("./pages/HomePage.jsx"));
+const PostDetailPage = React.lazy(() => import("./pages/PostDetailPage.jsx"));
+const AdminDashboardPage = React.lazy(() =>
+  import("./pages/AdminDashboardPage.jsx")
+);
+const RegisterPage = React.lazy(() => import("./pages/RegisterPage.jsx"));
+const LoginPage = React.lazy(() => import("./pages/LoginPage.jsx"));
+const PostEditorPage = React.lazy(() => import("./pages/PostEditorPage.jsx"));
+const SearchPage = React.lazy(() => import("./pages/SearchPage.jsx"));
+const CategoryPage = React.lazy(() => import("./pages/CategoryPage.jsx"));
+const ProfilePage = React.lazy(() => import("./pages/ProfilePage.jsx"));
+const SettingsPage = React.lazy(() => import("./pages/SettingsPage.jsx"));
+const BookmarksPage = React.lazy(() => import("./pages/BookmarksPage.jsx"));
 
 const router = createBrowserRouter([
   {
     path: "/",
     element: <App />,
+    errorElement: <ErrorPage />, // New: Global error boundary
     children: [
       { index: true, element: <HomePage /> },
       { path: "post/slug/:slug", element: <PostDetailPage /> },
@@ -32,7 +39,6 @@ const router = createBrowserRouter([
       { path: "search/:keyword", element: <SearchPage /> },
       { path: "category/:categoryId", element: <CategoryPage /> },
       { path: "profile/:userId", element: <ProfilePage /> },
-
       {
         path: "",
         element: <PrivateRoute />,

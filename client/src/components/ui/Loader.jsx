@@ -1,13 +1,27 @@
 import Lottie from "lottie-react";
-import animationData from "../../assets/lottie/loader.json"; // Assuming your file is named loader.json
+import { motion } from "framer-motion";
+import animationData from "../../assets/lottie/loader.json";
 
-const Loader = () => {
+const Loader = ({ message = "Loading..." }) => {
   return (
-    <div className="flex justify-center items-center py-20">
+    <motion.div
+      className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white/50 dark:bg-black/50 backdrop-blur-sm"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+    >
       <div className="w-40 h-40">
         <Lottie animationData={animationData} loop={true} />
       </div>
-    </div>
+      <motion.p
+        className="text-lg font-semibold text-gray-700 dark:text-gray-300"
+        initial={{ opacity: 0.5 }}
+        animate={{ opacity: [0.5, 1, 0.5] }}
+        transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+      >
+        {message}
+      </motion.p>
+    </motion.div>
   );
 };
 

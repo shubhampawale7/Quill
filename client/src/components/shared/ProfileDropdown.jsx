@@ -1,6 +1,7 @@
-import { Menu, Transition } from "@headlessui/react";
+import { Menu } from "@headlessui/react";
 import { Fragment, useContext } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
 import { AuthContext } from "../../context/AuthContext";
 import {
   FiUser,
@@ -10,6 +11,39 @@ import {
   FiBookmark,
 } from "react-icons/fi";
 import { toast } from "sonner";
+
+// --- Reusable, "Magic Motion" Menu Item ---
+const MenuItemLink = ({ to, icon, children }) => (
+  <Menu.Item as="div" className="relative p-1">
+    {({ active, close }) => (
+      <Link
+        to={to}
+        onClick={close}
+        className="group flex w-full items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors text-gray-700 dark:text-gray-300"
+      >
+        {active && (
+          <motion.div
+            layoutId="profile-menu-highlight"
+            className="absolute inset-1 rounded-md bg-sky-200 dark:bg-sky-500/10"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          />
+        )}
+        <motion.span
+          className="relative z-10 mr-3 h-5 w-5"
+          animate={{
+            scale: active ? 1.2 : 1,
+            color: active ? "#0ea5e9" : "#6b7280",
+          }}
+        >
+          {icon}
+        </motion.span>
+        <span className="relative z-10">{children}</span>
+      </Link>
+    )}
+  </Menu.Item>
+);
 
 const ProfileDropdown = () => {
   const { userInfo, logout } = useContext(AuthContext);
@@ -27,88 +61,99 @@ const ProfileDropdown = () => {
 
   return (
     <Menu as="div" className="relative inline-block text-left">
-      <div>
-        <Menu.Button className="inline-flex w-full justify-center items-center gap-2 rounded-md px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/75">
-          {userInfo.name}
-          <FiChevronDown className="-mr-1 h-5 w-5" aria-hidden="true" />
-        </Menu.Button>
-      </div>
-      <Transition
-        as={Fragment}
-        enter="transition ease-out duration-100"
-        enterFrom="transform opacity-0 scale-95"
-        enterTo="transform opacity-100 scale-100"
-        leave="transition ease-in duration-75"
-        leaveFrom="transform opacity-100 scale-100"
-        leaveTo="transform opacity-0 scale-95"
-      >
-        <Menu.Items className="absolute right-0 mt-2 w-56 origin-top-right divide-y divide-gray-100 dark:divide-gray-700 rounded-md bg-white dark:bg-gray-800 shadow-lg ring-1 ring-black/5 focus:outline-none">
-          <div className="px-1 py-1">
-            <Menu.Item>
-              {({ active }) => (
-                <Link
-                  to={`/profile/${userInfo._id}`}
-                  className={`${
-                    active
-                      ? "bg-sky-500 text-white"
-                      : "text-gray-900 dark:text-gray-100"
-                  } group flex w-full items-center rounded-md px-2 py-2 text-sm`}
-                >
-                  <FiUser className="mr-2 h-5 w-5" aria-hidden="true" />
-                  My Profile
-                </Link>
-              )}
-            </Menu.Item>
-            <Menu.Item>
-              {({ active }) => (
-                <Link
-                  to="/bookmarks"
-                  className={`${
-                    active
-                      ? "bg-sky-500 text-white"
-                      : "text-gray-900 dark:text-gray-100"
-                  } group flex w-full items-center rounded-md px-2 py-2 text-sm`}
-                >
-                  <FiBookmark className="mr-2 h-5 w-5" aria-hidden="true" />
-                  My Bookmarks
-                </Link>
-              )}
-            </Menu.Item>
-            <Menu.Item>
-              {({ active }) => (
-                <Link
-                  to="/settings"
-                  className={`${
-                    active
-                      ? "bg-sky-500 text-white"
-                      : "text-gray-900 dark:text-gray-100"
-                  } group flex w-full items-center rounded-md px-2 py-2 text-sm`}
-                >
-                  <FiSettings className="mr-2 h-5 w-5" aria-hidden="true" />
-                  Account Settings
-                </Link>
-              )}
-            </Menu.Item>
-          </div>
-          <div className="px-1 py-1">
-            <Menu.Item>
-              {({ active }) => (
-                <button
-                  onClick={handleLogout}
-                  className={`${
-                    active
-                      ? "bg-sky-500 text-white"
-                      : "text-gray-900 dark:text-gray-100"
-                  } group flex w-full items-center rounded-md px-2 py-2 text-sm`}
-                >
-                  <FiLogOut className="mr-2 h-5 w-5" aria-hidden="true" />
-                  Logout
-                </button>
-              )}
-            </Menu.Item>
-          </div>
-        </Menu.Items>
-      </Transition>
+      {({ open }) => (
+        <>
+          <Menu.Button
+            as={motion.button}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className="inline-flex items-center gap-3 rounded-full bg-pink/50 py-1.5 pl-2 pr-4 text-sm font-semibold text-gray-800 shadow-sm ring-1 ring-black/5 focus:outline-none dark:bg-black/50 dark:text-gray-200 dark:ring-white/10"
+          >
+            <img
+              src={
+                userInfo.avatarUrl ||
+                `https://i.pravatar.cc/150?u=${userInfo._id}`
+              }
+              alt={userInfo.name}
+              className="h-8 w-8 rounded-full"
+            />
+            {userInfo.name}
+            <motion.div animate={{ rotate: open ? 180 : 0 }}>
+              <FiChevronDown className="h-5 w-5 text-gray-500" />
+            </motion.div>
+          </Menu.Button>
+
+          <AnimatePresence>
+            {open && (
+              <Menu.Items
+                as={motion.div}
+                static
+                initial={{ opacity: 0, scale: 0.9, y: -10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.9, y: -10 }}
+                transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                className="absolute right-0 mt-2 w-64 origin-top-right rounded-2xl border border-white/10 bg-white/90 p-1 shadow-2xl shadow-black/10 backdrop-blur-xl focus:outline-none dark:bg-black/50"
+              >
+                <div className="border-b border-gray-900/5 px-4 py-3 dark:border-white/5">
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                    {userInfo.name}
+                  </p>
+                  <p className="truncate text-xs text-gray-500 dark:text-gray-400">
+                    {userInfo.email}
+                  </p>
+                </div>
+
+                <div className="py-1">
+                  <MenuItemLink
+                    to={`/profile/${userInfo._id}`}
+                    icon={<FiUser />}
+                  >
+                    My Profile
+                  </MenuItemLink>
+                  <MenuItemLink to="/bookmarks" icon={<FiBookmark />}>
+                    My Bookmarks
+                  </MenuItemLink>
+                  <MenuItemLink to="/settings" icon={<FiSettings />}>
+                    Account Settings
+                  </MenuItemLink>
+                </div>
+
+                <Menu.Item as="div" className="relative p-1">
+                  {({ active, close }) => (
+                    <button
+                      onClick={() => {
+                        handleLogout();
+                        close();
+                      }}
+                      className="group flex w-full items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors text-gray-700 dark:text-gray-300"
+                    >
+                      {active && (
+                        <motion.div
+                          layoutId="profile-menu-highlight"
+                          className="absolute inset-1 rounded-md bg-red-500/10"
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                        />
+                      )}
+                      <motion.span
+                        className="relative z-10 mr-3 h-5 w-5"
+                        animate={{
+                          scale: active ? 1.2 : 1,
+                          color: active ? "#ef4444" : "#6b7280",
+                        }}
+                      >
+                        <FiLogOut />
+                      </motion.span>
+                      <span className="relative z-10">Logout</span>
+                    </button>
+                  )}
+                </Menu.Item>
+              </Menu.Items>
+            )}
+          </AnimatePresence>
+        </>
+      )}
     </Menu>
   );
 };
